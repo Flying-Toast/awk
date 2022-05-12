@@ -1,3 +1,4 @@
+#[derive(Debug)]
 enum Token<'a> {
     Name(&'a str),
     Number(&'a str),
@@ -72,21 +73,51 @@ enum Token<'a> {
 }
 
 /// (line, col)
+#[derive(Debug)]
 struct LexError(usize, usize);
 
 struct Lexer<'a> {
     source: &'a str,
+    idx: usize,
     line: usize,
     col: usize,
 }
 
 impl<'a> Lexer<'a> {
-    fn lex_string(source: &'a str) -> Self {
+    pub fn lex_string(source: &'a str) -> Self {
         Self {
             source,
+            idx: 0,
             line: 1,
-            col: 0,
+            col: 1,
         }
+    }
+
+    fn lex_twochar_token(&mut self) -> Option<Token<'a>> {
+        let tkn = match self.source.get(self.idx..self.idx + 2)? {
+            "+=" => Token::AddAssign,
+            "-=" => Token::SubAssign,
+            "*=" => Token::MulAssign,
+            "/=" => Token::DivAssign,
+            "%=" => Token::ModAssign,
+            "^=" => Token::PowAssign,
+            "||" => Token::Or,
+            "&&" => Token::And,
+            "!~" => Token::NoMatch,
+            "==" => Token::Eq,
+            "<=" => Token::Le,
+            ">=" => Token::Ge,
+            "!=" => Token::Ne,
+            "++" => Token::Incr,
+            "--" => Token::Decr,
+            ">>" => Token::Append,
+            _ => return None,
+        };
+
+        self.idx += 2;
+        self.col += 2;
+
+        Some(tkn)
     }
 }
 
@@ -95,7 +126,9 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.source.is_empty() {
-            None
+            return None;
+        } else if let Some(token) = self.lex_twochar_token() {
+            return Some(Ok(token));
         } else {
             todo!()
         }
