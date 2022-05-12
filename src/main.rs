@@ -72,6 +72,30 @@ enum Token<'a> {
     Equals,
 }
 
+const BUILTIN_FUNC_NAMES: [&str; 21] = [
+    "atan2",
+    "cos",
+    "sin",
+    "exp",
+    "log",
+    "sqrt",
+    "int",
+    "rand",
+    "srand",
+    "gsub",
+    "index",
+    "length",
+    "match",
+    "split",
+    "sprintf",
+    "sub",
+    "substr",
+    "tolower",
+    "toupper",
+    "close",
+    "system",
+];
+
 /// (line, col)
 #[derive(Debug)]
 struct LexError(usize, usize);
@@ -207,11 +231,41 @@ impl<'a> Lexer<'a> {
         todo!()
     }
 
-    fn lex_builtin_func_name(&mut self) -> Option<Token<'a>> {
+    fn peek_ident(&mut self) -> Option<&'a str> {
+        if matches!(self.peek_next_char()?, 'A'..='Z' | 'a'..='z' | '_') {
+            let len = self.source
+                .chars()
+                .take_while(|c| matches!(c, 'A'..='Z' | 'a'..='z' | '_' | '0'..='9'))
+                .count();
+
+            Some(&self.source[self.idx..self.idx + len])
+        } else {
+            None
+        }
+    }
+
+    /// Lex either a builtin or user-defined func name
+    fn lex_func_name(&mut self) -> Option<Token<'a>> {
+        let peeked_ident = self.peek_ident()?;
+        if self.char_at_idx(self.idx + peeked_ident.len())? == '(' {
+            self.idx += peeked_ident.len();
+            self.col += peeked_ident.len();
+
+            if BUILTIN_FUNC_NAMES.iter().any(|&x| x == peeked_ident) {
+                Some(Token::BuiltinFuncName(peeked_ident))
+            } else {
+                Some(Token::FuncName(peeked_ident))
+            }
+        } else {
+            None
+        }
+    }
+
+    fn lex_keyword(&mut self) -> Option<Token<'a>> {
         todo!()
     }
 
-    fn lex_func_name(&mut self) -> Option<Token<'a>> {
+    fn lex_name(&mut self) -> Option<Token<'a>> {
         todo!()
     }
 }
@@ -224,10 +278,11 @@ impl<'a> Iterator for Lexer<'a> {
             Self::lex_string_lit,
             Self::lex_number_lit,
             Self::lex_ere,
-            Self::lex_builtin_func_name,
             Self::lex_func_name,
             Self::lex_twochar_token,
             Self::lex_onechar_token,
+            Self::lex_keyword,
+            Self::lex_name,
         ];
 
         if self.source.is_empty() {
