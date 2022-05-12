@@ -224,12 +224,12 @@ impl<'a> Tokens<'a> {
     }
 
     fn lex_number_lit(&mut self) -> Option<Token<'a>> {
-        dbg!("TODO");
+        // TODO
         None
     }
 
     fn lex_ere(&mut self) -> Option<Token<'a>> {
-        dbg!("TODO");
+        // TODO
         None
     }
 
@@ -237,6 +237,7 @@ impl<'a> Tokens<'a> {
         if matches!(self.peek_next_char()?, 'A'..='Z' | 'a'..='z' | '_') {
             let len = self.source
                 .chars()
+                .skip(self.idx)
                 .take_while(|c| matches!(c, 'A'..='Z' | 'a'..='z' | '_' | '0'..='9'))
                 .count();
 
