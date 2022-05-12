@@ -119,6 +119,45 @@ impl<'a> Lexer<'a> {
 
         Some(tkn)
     }
+
+    fn lex_onechar_token(&mut self) -> Option<Token<'a>> {
+        let tkn = match self.source.chars().nth(self.idx)? {
+            '{' => Token::LeftBrace,
+            '}' => Token::RightBrace,
+            '(' => Token::LeftParen,
+            ')' => Token::RightParen,
+            '[' => Token::LeftBracket,
+            ']' => Token::RightBracket,
+            ',' => Token::Comma,
+            ';' => Token::Semicolon,
+            '\n' => Token::Newline,
+            '+' => Token::Plus,
+            '-' => Token::Minus,
+            '*' => Token::Asterisk,
+            '%' => Token::Percent,
+            '^' => Token::Caret,
+            '!' => Token::ExclamationPoint,
+            '<' => Token::LeftAngleBracket,
+            '>' => Token::RightAngleBracket,
+            '|' => Token::Pipe,
+            '?' => Token::QuestionMark,
+            ':' => Token::Colon,
+            '~' => Token::Tilde,
+            '$' => Token::Dollar,
+            '=' => Token::Equals,
+            _ => return None,
+        };
+
+        self.idx += 1;
+        if let Token::Newline = tkn {
+            self.line += 1;
+            self.col = 1;
+        } else {
+            self.col += 1;
+        }
+
+        Some(tkn)
+    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -128,6 +167,8 @@ impl<'a> Iterator for Lexer<'a> {
         if self.source.is_empty() {
             return None;
         } else if let Some(token) = self.lex_twochar_token() {
+            return Some(Ok(token));
+        } else if let Some(token) = self.lex_onechar_token() {
             return Some(Ok(token));
         } else {
             todo!()
