@@ -198,21 +198,47 @@ impl<'a> Lexer<'a> {
             None
         }
     }
+
+    fn lex_number_lit(&mut self) -> Option<Token<'a>> {
+        todo!()
+    }
+
+    fn lex_ere(&mut self) -> Option<Token<'a>> {
+        todo!()
+    }
+
+    fn lex_builtin_func_name(&mut self) -> Option<Token<'a>> {
+        todo!()
+    }
+
+    fn lex_func_name(&mut self) -> Option<Token<'a>> {
+        todo!()
+    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
     type Item = Result<Token<'a>, LexError>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        let lexing_funcs = [
+            Self::lex_string_lit,
+            Self::lex_number_lit,
+            Self::lex_ere,
+            Self::lex_builtin_func_name,
+            Self::lex_func_name,
+            Self::lex_twochar_token,
+            Self::lex_onechar_token,
+        ];
+
         if self.source.is_empty() {
             None
-        } else if let Some(token) = self.lex_string_lit() {
-            Some(Ok(token))
-        } else if let Some(token) = self.lex_twochar_token() {
-            Some(Ok(token))
-        } else if let Some(token) = self.lex_onechar_token() {
-            Some(Ok(token))
         } else {
+            for f in lexing_funcs {
+                if let Some(token) = f(self) {
+                    return Some(Ok(token));
+                }
+            }
+
             Some(Err(LexError(self.line, self.col)))
         }
     }
