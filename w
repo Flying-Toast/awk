@@ -215,53 +215,20 @@ impl<'a> Tokens<'a> {
 
             self.idx = endidx;
             self.col = newcol;
+            let lit = self.source.get(startidx..endidx).expect("lexed string is at valid source indices");
 
-            Some(Token::String(&self.source[startidx..endidx]))
+            Some(Token::String(lit))
         } else {
             None
         }
     }
 
     fn lex_number_lit(&mut self) -> Option<Token<'a>> {
-        let first_ch = self.peek_next_char()?;
-        let starts_with_sign_then_digit = first_ch == '+' || first_ch == '-' && matches!(self.char_at_idx(self.idx + 1)?, '0'..='9');
-        let starts_with_digit = matches!(first_ch, '0'..='9');
-
-        if starts_with_sign_then_digit || starts_with_digit {
+        if matches!(self.peek_next_char()?, '0'..='9') {
             let chs = self.source.chars().skip(self.idx);
-            let mut reject_dot = false;
-            let mut reject_e = false;
-            let mut reject_sign = false;
 
-            let len = chs.take_while(|&ch| {
-                if starts_with_sign_then_digit && !reject_sign {
-                    reject_sign = true;
-                    return true;
-                }
-
-                if matches!(ch, '0'..='9') {
-                    return true;
-                }
-
-                if ch == '.' && !reject_dot {
-                    reject_dot = true;
-                    return true;
-                }
-
-                if ch == 'e' || ch == 'E' && !reject_e {
-                    reject_e = true;
-                    reject_dot = true;
-                    return true;
-                }
-
-                false
-            }).count();
-
-            let lit = &self.source[self.idx..self.idx + len];
-            self.idx += len;
-            self.col += len;
-
-            Some(Token::Number(lit))
+            self.idx += something?...
+            self.col += something?...
         } else {
             None
         }
