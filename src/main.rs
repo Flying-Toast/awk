@@ -100,23 +100,23 @@ const BUILTIN_FUNC_NAMES: [&str; 21] = [
 #[derive(Debug)]
 struct LexError(usize, usize);
 
-struct Lexer<'a> {
+struct Tokens<'a> {
     source: &'a str,
     idx: usize,
     line: usize,
     col: usize,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn lex_string(source: &'a str) -> Self {
-        Self {
-            source,
-            idx: 0,
-            line: 1,
-            col: 1,
-        }
+fn lex_tokens_from_string<'a>(source: &'a str) -> Tokens<'a> {
+    Tokens {
+        source,
+        idx: 0,
+        line: 1,
+        col: 1,
     }
+}
 
+impl<'a> Tokens<'a> {
     fn lex_twochar_token(&mut self) -> Option<Token<'a>> {
         let tkn = match self.source.get(self.idx..self.idx + 2)? {
             "+=" => Token::AddAssign,
@@ -224,11 +224,13 @@ impl<'a> Lexer<'a> {
     }
 
     fn lex_number_lit(&mut self) -> Option<Token<'a>> {
-        todo!()
+        dbg!("TODO");
+        None
     }
 
     fn lex_ere(&mut self) -> Option<Token<'a>> {
-        todo!()
+        dbg!("TODO");
+        None
     }
 
     fn peek_ident(&mut self) -> Option<&'a str> {
@@ -262,15 +264,46 @@ impl<'a> Lexer<'a> {
     }
 
     fn lex_keyword(&mut self) -> Option<Token<'a>> {
-        todo!()
+        let peeked_ident = self.peek_ident()?;
+        let tkn = match peeked_ident {
+            "BEGIN" => Token::Begin,
+            "END" => Token::End,
+            "break" => Token::Break,
+            "continue" => Token::Continue,
+            "delete" => Token::Delete,
+            "do" => Token::Do,
+            "else" => Token::Else,
+            "exit" => Token::Exit,
+            "for" => Token::For,
+            "function" => Token::Function,
+            "if" => Token::If,
+            "in" => Token::In,
+            "next" => Token::Next,
+            "print" => Token::Print,
+            "printf" => Token::Printf,
+            "return" => Token::Return,
+            "while" => Token::While,
+            "getline" => Token::Getline,
+            _ => return None,
+        };
+
+        self.col += peeked_ident.len();
+        self.idx += peeked_ident.len();
+
+        Some(tkn)
     }
 
     fn lex_name(&mut self) -> Option<Token<'a>> {
-        todo!()
+        let peeked_ident = self.peek_ident()?;
+
+        self.col += peeked_ident.len();
+        self.idx += peeked_ident.len();
+
+        Some(Token::Name(peeked_ident))
     }
 }
 
-impl<'a> Iterator for Lexer<'a> {
+impl<'a> Iterator for Tokens<'a> {
     type Item = Result<Token<'a>, LexError>;
 
     fn next(&mut self) -> Option<Self::Item> {
