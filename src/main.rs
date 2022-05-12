@@ -165,13 +165,13 @@ impl<'a> Iterator for Lexer<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.source.is_empty() {
-            return None;
+            None
         } else if let Some(token) = self.lex_twochar_token() {
-            return Some(Ok(token));
+            Some(Ok(token))
         } else if let Some(token) = self.lex_onechar_token() {
-            return Some(Ok(token));
+            Some(Ok(token))
         } else {
-            todo!()
+            Some(Err(LexError(self.line, self.col)))
         }
     }
 }
