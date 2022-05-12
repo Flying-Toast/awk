@@ -120,8 +120,16 @@ impl<'a> Lexer<'a> {
         Some(tkn)
     }
 
+    fn char_at_idx(&self, idx: usize) -> Option<char> {
+        self.source.chars().nth(idx)
+    }
+
+    fn peek_next_char(&self) -> Option<char> {
+        self.char_at_idx(self.idx)
+    }
+
     fn lex_onechar_token(&mut self) -> Option<Token<'a>> {
-        let tkn = match self.source.chars().nth(self.idx)? {
+        let tkn = match self.peek_next_char()? {
             '{' => Token::LeftBrace,
             '}' => Token::RightBrace,
             '(' => Token::LeftParen,
@@ -158,6 +166,38 @@ impl<'a> Lexer<'a> {
 
         Some(tkn)
     }
+
+    fn lex_string_lit(&mut self) -> Option<Token<'a>> {
+        if self.peek_next_char()? == '"' {
+            let startidx = self.idx;
+            let mut endidx = startidx + 1;
+            let mut newcol = self.col + 2;
+
+            let mut escaping = false;
+            while escaping || self.char_at_idx(endidx)? != '"' {
+                escaping = false;
+                let curr = self.char_at_idx(endidx)?;
+                if curr == '\n' {
+                    // newlines not allowed in string literals
+                    return None;
+                }
+                if curr == '\\' {
+                    escaping = true;
+                }
+                endidx += 1;
+                newcol += 1;
+            }
+            endidx += 1; // the closing quote
+
+            self.idx = endidx;
+            self.col = newcol;
+            let lit = self.source.get(startidx..endidx).expect("lexed string is at valid source indices");
+
+            Some(Token::String(lit))
+        } else {
+            None
+        }
+    }
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -166,6 +206,8 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         if self.source.is_empty() {
             None
+        } else if let Some(token) = self.lex_string_lit() {
+            Some(Ok(token))
         } else if let Some(token) = self.lex_twochar_token() {
             Some(Ok(token))
         } else if let Some(token) = self.lex_onechar_token() {
