@@ -358,7 +358,7 @@ impl<'a> Iterator for Tokens<'a> {
             Self::lex_name,
         ];
 
-        if self.source.is_empty() {
+        if self.idx >= self.source.len() {
             None
         } else {
             for f in lexing_funcs {
