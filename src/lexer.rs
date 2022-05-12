@@ -341,6 +341,16 @@ impl<'a> Tokens<'a> {
 
         Some(Token::Name(peeked_ident))
     }
+
+    fn eat_space(&mut self) {
+        let n = self.source
+            .chars()
+            .skip(self.idx)
+            .take_while(|&ch| ch == ' ' || ch == '\t')
+            .count();
+        self.col += n;
+        self.idx += n;
+    }
 }
 
 impl<'a> Iterator for Tokens<'a> {
@@ -357,6 +367,8 @@ impl<'a> Iterator for Tokens<'a> {
             Self::lex_keyword,
             Self::lex_name,
         ];
+
+        self.eat_space();
 
         if self.idx >= self.source.len() {
             None
