@@ -224,7 +224,7 @@ impl<'a> Tokens<'a> {
 
     fn lex_number_lit(&mut self) -> Option<Token<'a>> {
         let first_ch = self.peek_next_char()?;
-        let starts_with_sign_then_digit = first_ch == '+' || first_ch == '-' && matches!(self.char_at_idx(self.idx + 1)?, '0'..='9');
+        let starts_with_sign_then_digit = (first_ch == '+' || first_ch == '-') && matches!(self.char_at_idx(self.idx + 1)?, '0'..='9');
         let starts_with_digit = matches!(first_ch, '0'..='9');
 
         if starts_with_sign_then_digit || starts_with_digit {
