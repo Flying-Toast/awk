@@ -71,5 +71,36 @@ enum Token<'a> {
     Equals,
 }
 
+/// (line, col)
+struct LexError(usize, usize);
+
+struct Lexer<'a> {
+    source: &'a str,
+    line: usize,
+    col: usize,
+}
+
+impl<'a> Lexer<'a> {
+    fn lex_string(source: &'a str) -> Self {
+        Self {
+            source,
+            line: 1,
+            col: 0,
+        }
+    }
+}
+
+impl<'a> Iterator for Lexer<'a> {
+    type Item = Result<Token<'a>, LexError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.source.is_empty() {
+            None
+        } else {
+            todo!()
+        }
+    }
+}
+
 fn main() {
 }
