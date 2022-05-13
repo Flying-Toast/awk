@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum Token<'a> {
     Name(&'a str),
     Number(&'a str),
@@ -56,6 +56,7 @@ pub enum Token<'a> {
     Plus,
     Minus,
     Asterisk,
+    Slash,
     Percent,
     Caret,
     ExclamationPoint,
@@ -102,6 +103,7 @@ pub struct LexError(usize, usize);
 
 pub struct Tokens<'a> {
     source: &'a str,
+    last_non_newline: Option<Token<'a>>,
     idx: usize,
     line: usize,
     col: usize,
@@ -110,6 +112,7 @@ pub struct Tokens<'a> {
 pub fn lex_tokens_from_string<'a>(source: &'a str) -> Tokens<'a> {
     Tokens {
         source,
+        last_non_newline: None,
         idx: 0,
         line: 1,
         col: 1,
@@ -122,7 +125,6 @@ impl<'a> Tokens<'a> {
             "+=" => Token::AddAssign,
             "-=" => Token::SubAssign,
             "*=" => Token::MulAssign,
-            "/=" => Token::DivAssign,
             "%=" => Token::ModAssign,
             "^=" => Token::PowAssign,
             "||" => Token::Or,
@@ -192,17 +194,21 @@ impl<'a> Tokens<'a> {
     }
 
     fn lex_string_lit(&mut self) -> Option<Token<'a>> {
-        if self.peek_next_char()? == '"' {
+        Some(Token::String(self.lex_delimited_lit('"')?))
+    }
+
+    fn lex_delimited_lit(&mut self, delim: char) -> Option<&'a str> {
+        if self.peek_next_char()? == delim {
             let startidx = self.idx;
             let mut endidx = startidx + 1;
             let mut newcol = self.col + 2;
 
             let mut escaping = false;
-            while escaping || self.char_at_idx(endidx)? != '"' {
+            while escaping || self.char_at_idx(endidx)? != delim {
                 escaping = false;
                 let curr = self.char_at_idx(endidx)?;
                 if curr == '\n' {
-                    // newlines not allowed in string literals
+                    // newlines not allowed
                     return None;
                 }
                 if curr == '\\' {
@@ -211,12 +217,12 @@ impl<'a> Tokens<'a> {
                 endidx += 1;
                 newcol += 1;
             }
-            endidx += 1; // the closing quote
+            endidx += 1; // the closing delimiter
 
             self.idx = endidx;
             self.col = newcol;
 
-            Some(Token::String(&self.source[startidx..endidx]))
+            Some(&self.source[startidx..endidx])
         } else {
             None
         }
@@ -267,9 +273,36 @@ impl<'a> Tokens<'a> {
         }
     }
 
-    fn lex_ere(&mut self) -> Option<Token<'a>> {
-        // TODO
-        None
+    /// A slash can be division, the start of a DivAssign, or the start of an ERE.
+    ///
+    /// From https://pubs.opengroup.org/onlinepubs/9699919799/utilities/awk.html:
+    ///
+    /// There is a lexical ambiguity between the token ERE and the tokens '/' and DIV_ASSIGN.
+    /// When an input sequence begins with a <slash> character in any syntactic context where
+    /// the token '/' or DIV_ASSIGN could appear as the next token in a valid program, the
+    /// longer of those two tokens that can be recognized shall be recognized. In any other
+    /// syntactic context where the token ERE could appear as the next token in a valid program,
+    /// the token ERE shall be recognized.
+    fn lex_ambiguous_slash(&mut self) -> Option<Token<'a>> {
+        if self.peek_next_char()? != '/' {
+            return None;
+        }
+
+        if self.last_non_newline.is_some() && matches!(self.last_non_newline.unwrap(), Token::Name(_) | Token::Number(_) | Token::String(_) | Token::FuncName(_) | Token::BuiltinFuncName(_) | Token::Getline | Token::Incr | Token::Decr | Token::RightParen | Token::RightBracket | Token::Ere(_)) { // division is possible here
+            if let Some("/=") = self.source.get(self.idx..self.idx + 2) {
+                self.idx += 2;
+                self.col += 2;
+
+                Some(Token::DivAssign)
+            } else {
+                self.idx += 1;
+                self.col += 1;
+
+                Some(Token::Slash)
+            }
+        } else { // else assume ERE
+            Some(Token::Ere(self.lex_delimited_lit('/')?))
+        }
     }
 
     fn peek_ident(&mut self) -> Option<&'a str> {
@@ -360,7 +393,7 @@ impl<'a> Iterator for Tokens<'a> {
         let lexing_funcs = [
             Self::lex_string_lit,
             Self::lex_number_lit,
-            Self::lex_ere,
+            Self::lex_ambiguous_slash,
             Self::lex_func_name,
             Self::lex_twochar_token,
             Self::lex_onechar_token,
@@ -374,7 +407,10 @@ impl<'a> Iterator for Tokens<'a> {
             None
         } else {
             for f in lexing_funcs {
-                if let Some(token) = f(self) {
+                if let sometkn@Some(token) = f(self) {
+                    if !matches!(token, Token::Newline) {
+                        self.last_non_newline = sometkn;
+                    }
                     return Some(Ok(token));
                 }
             }
