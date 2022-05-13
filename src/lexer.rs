@@ -5,6 +5,7 @@ pub enum Token<'a> {
     String(&'a str),
     Ere(&'a str),
     FuncName(&'a str),
+    BuiltinFuncName(BuiltinFunc),
     Begin,
     End,
     Break,
@@ -22,7 +23,6 @@ pub enum Token<'a> {
     Printf,
     Return,
     While,
-    BuiltinFuncName(&'a str),
     Getline,
     AddAssign,
     SubAssign,
@@ -73,29 +73,30 @@ pub enum Token<'a> {
     Equals,
 }
 
-const BUILTIN_FUNC_NAMES: [&str; 21] = [
-    "atan2",
-    "cos",
-    "sin",
-    "exp",
-    "log",
-    "sqrt",
-    "int",
-    "rand",
-    "srand",
-    "gsub",
-    "index",
-    "length",
-    "match",
-    "split",
-    "sprintf",
-    "sub",
-    "substr",
-    "tolower",
-    "toupper",
-    "close",
-    "system",
-];
+#[derive(Debug, Copy, Clone)]
+pub enum BuiltinFunc {
+    Atan2,
+    Cos,
+    Sin,
+    Exp,
+    Log,
+    Sqrt,
+    Int,
+    Rand,
+    Srand,
+    Gsub,
+    Index,
+    Length,
+    Match,
+    Split,
+    Sprintf,
+    Sub,
+    Substr,
+    Tolower,
+    Toupper,
+    Close,
+    System,
+}
 
 /// (line, col)
 #[derive(Debug)]
@@ -326,11 +327,32 @@ impl<'a> Tokens<'a> {
             self.idx += peeked_ident.len();
             self.col += peeked_ident.len();
 
-            if BUILTIN_FUNC_NAMES.iter().any(|&x| x == peeked_ident) {
-                Some(Token::BuiltinFuncName(peeked_ident))
-            } else {
-                Some(Token::FuncName(peeked_ident))
-            }
+            let builtin = match peeked_ident {
+                "atan2" => BuiltinFunc::Atan2,
+                "cos" => BuiltinFunc::Cos,
+                "sin" => BuiltinFunc::Sin,
+                "exp" => BuiltinFunc::Exp,
+                "log" => BuiltinFunc::Log,
+                "sqrt" => BuiltinFunc::Sqrt,
+                "int" => BuiltinFunc::Int,
+                "rand" => BuiltinFunc::Rand,
+                "srand" => BuiltinFunc::Srand,
+                "gsub" => BuiltinFunc::Gsub,
+                "index" => BuiltinFunc::Index,
+                "length" => BuiltinFunc::Length,
+                "match" => BuiltinFunc::Match,
+                "split" => BuiltinFunc::Split,
+                "sprintf" => BuiltinFunc::Sprintf,
+                "sub" => BuiltinFunc::Sub,
+                "substr" => BuiltinFunc::Substr,
+                "tolower" => BuiltinFunc::Tolower,
+                "toupper" => BuiltinFunc::Toupper,
+                "close" => BuiltinFunc::Close,
+                "system" => BuiltinFunc::System,
+                _ => return Some(Token::FuncName(peeked_ident)),
+            };
+
+            Some(Token::BuiltinFuncName(builtin))
         } else {
             None
         }
