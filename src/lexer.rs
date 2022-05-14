@@ -324,6 +324,10 @@ impl<'a> Tokens<'a> {
     fn lex_func_name(&mut self) -> Option<Token<'a>> {
         let peeked_ident = self.peek_ident()?;
         if self.char_at_idx(self.idx + peeked_ident.len())? == '(' {
+            if peeked_ident == "print" {
+                // Don't lex print() as a function, it is a separate statement
+                return None;
+            }
             self.idx += peeked_ident.len();
             self.col += peeked_ident.len();
 
