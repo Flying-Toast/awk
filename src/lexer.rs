@@ -1,3 +1,5 @@
+use crate::error::{Result, Error};
+
 #[derive(Debug, Copy, Clone)]
 pub enum Token<'a> {
     Name(&'a str),
@@ -97,10 +99,6 @@ pub enum BuiltinFunc {
     Close,
     System,
 }
-
-/// (line, col)
-#[derive(Debug)]
-pub struct LexError(usize, usize);
 
 pub struct Tokens<'a> {
     source: &'a str,
@@ -409,7 +407,7 @@ impl<'a> Tokens<'a> {
 }
 
 impl<'a> Iterator for Tokens<'a> {
-    type Item = Result<Token<'a>, LexError>;
+    type Item = Result<Token<'a>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let lexing_funcs = [
@@ -437,7 +435,7 @@ impl<'a> Iterator for Tokens<'a> {
                 }
             }
 
-            Some(Err(LexError(self.line, self.col)))
+            Some(Err(Error::Lex(self.line, self.col)))
         }
     }
 }
